@@ -135,15 +135,19 @@ const getLayout = (templateId, width, height) => {
   const isStory = height / width > 1.6;
   const isLandscape = width / height > 1.6;
   const baseMargin = isStory ? width * 0.075 : isLandscape ? height * 0.09 : width * 0.07;
+  const scaleX = width / 1080;
+  const scaleY = height / 1080;
+  const scale = Math.min(scaleX, scaleY);
 
   if (templateId === 'cover') {
     return {
-      margin: baseMargin,
-      headlineSize: isStory ? width * 0.1 : isLandscape ? height * 0.16 : width * 0.085,
-      arrowSize: isStory ? width * 0.12 : width * 0.1,
-      footerSize: isStory ? width * 0.038 : width * 0.042,
-      headlineY: isStory ? height * 0.38 : isLandscape ? height * 0.34 : height * 0.41,
-      footerY: height - baseMargin * 1.2,
+      margin: isStory ? width * 0.075 : isLandscape ? height * 0.09 : 35 * scaleX,
+      headlineSize: isStory ? width * 0.1 : isLandscape ? height * 0.16 : 114 * scale,
+      arrowSize: isStory ? width * 0.12 : 88 * scale,
+      footerSize: isStory ? width * 0.038 : 40 * scale,
+      headlineY: isStory ? height * 0.38 : isLandscape ? height * 0.34 : 398 * scaleY,
+      headlineHeight: isStory ? height * 0.24 : 284 * scaleY,
+      footerY: isStory ? height - baseMargin * 1.2 : 980 * scaleY,
     };
   }
 
@@ -158,12 +162,16 @@ const getLayout = (templateId, width, height) => {
   }
 
   return {
-    margin: baseMargin,
+    margin: isStory ? baseMargin : 35 * scaleX,
     dateSize: isStory ? width * 0.048 : isLandscape ? height * 0.08 : width * 0.047,
     titleSize: isStory ? width * 0.0575 : isLandscape ? height * 0.072 : width * 0.056,
     metaSize: isStory ? width * 0.026 : isLandscape ? height * 0.04 : width * 0.026,
     footerSize: isStory ? width * 0.03 : width * 0.034,
     rowGap: isStory ? height * 0.022 : isLandscape ? height * 0.055 : height * 0.022,
+    agendaTop: isStory ? baseMargin : 33 * scaleY,
+    agendaHeight: isStory ? height - baseMargin * 2.8 : 890 * scaleY,
+    contentX: isStory ? baseMargin + width * 0.2 + width * 0.04 : 274 * scaleX,
+    footerY: isStory ? height - baseMargin * 2.1 : 980 * scaleY,
   };
 };
 
@@ -200,7 +208,7 @@ const drawCoverTemplate = (ctx, width, height, scene, colors, image) => {
   const headline = fitTextBlock(ctx, {
     text: scene.cover.headline,
     maxWidth: width - layout.margin * 2,
-    maxHeight: height * 0.22,
+    maxHeight: layout.headlineHeight,
     startSize: Math.round(layout.headlineSize),
     minSize: Math.round(layout.headlineSize * 0.62),
     leading: 0.92,
@@ -216,7 +224,7 @@ const drawCoverTemplate = (ctx, width, height, scene, colors, image) => {
 
   ctx.textAlign = 'left';
   setBodyFont(ctx, layout.footerSize, 400);
-  drawMultiline(ctx, `${scene.cover.kicker}\n${scene.cover.subline}`, layout.margin, layout.footerY, layout.footerSize, 1.18);
+  drawMultiline(ctx, `${scene.cover.kicker}\n${scene.cover.subline}`, layout.margin, layout.footerY, layout.footerSize, 1);
   drawLogo(ctx, width, height, scene, image);
 };
 
@@ -266,11 +274,10 @@ const drawNewsTemplate = (ctx, width, height, scene, colors, image) => {
 const drawAgendaTemplate = (ctx, width, height, scene, colors, image) => {
   const layout = getLayout('agenda', width, height);
   const margin = layout.margin;
-  const dateColumnWidth = width * 0.2;
-  const contentX = margin + dateColumnWidth + width * 0.04;
-  const top = margin;
-  const bottomReserve = height * 0.16;
-  const rowArea = height - top - bottomReserve;
+  const dateColumnWidth = layout.contentX - margin - width * 0.02;
+  const contentX = layout.contentX;
+  const top = layout.agendaTop;
+  const rowArea = layout.agendaHeight;
   const itemCount = Math.max(1, scene.agenda.items.length);
   const rowHeight = (rowArea - layout.rowGap * (itemCount - 1)) / itemCount;
 
@@ -316,7 +323,7 @@ const drawAgendaTemplate = (ctx, width, height, scene, colors, image) => {
   });
 
   setBodyFont(ctx, layout.footerSize, 400);
-  drawMultiline(ctx, `${scene.agenda.registrationLabel}\n${scene.agenda.registrationValue}`, margin, height - margin * 2.1, layout.footerSize, 1.18);
+  drawMultiline(ctx, `${scene.agenda.registrationLabel}\n${scene.agenda.registrationValue}`, margin, layout.footerY, layout.footerSize, 1);
   drawLogo(ctx, width, height, scene, image);
 };
 

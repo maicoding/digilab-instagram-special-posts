@@ -63,6 +63,14 @@ const fillBackground = (ctx, width, height, scene, colors) => {
   ctx.fillRect(0, 0, width, height);
 };
 
+const setHeadlineFont = (ctx, size) => {
+  ctx.font = `800 ${size}px "Montserrat", "Manrope", sans-serif`;
+};
+
+const setBodyFont = (ctx, size, weight = 500) => {
+  ctx.font = `${weight} ${size}px "Montserrat", "Manrope", sans-serif`;
+};
+
 const getLayout = (templateId, width, height) => {
   const isStory = height / width > 1.6;
   const isLandscape = width / height > 1.6;
@@ -123,14 +131,14 @@ const drawCoverTemplate = (ctx, width, height, scene, colors, image) => {
   ctx.fillStyle = colors.text;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.font = `900 ${layout.headlineSize}px "Archivo Black", sans-serif`;
+  setHeadlineFont(ctx, layout.headlineSize);
   drawMultiline(ctx, scene.cover.headline, width / 2, layout.headlineY, layout.headlineSize, 0.9);
 
-  ctx.font = `700 ${layout.arrowSize}px "Space Mono", monospace`;
+  setBodyFont(ctx, layout.arrowSize, 700);
   ctx.fillText(scene.cover.arrow, width / 2, layout.headlineY + layout.headlineSize * 2.05);
 
   ctx.textAlign = 'left';
-  ctx.font = `700 ${layout.footerSize}px "Manrope", sans-serif`;
+  setBodyFont(ctx, layout.footerSize, 500);
   drawMultiline(ctx, `${scene.cover.kicker}\n${scene.cover.subline}`, layout.margin, layout.footerY, layout.footerSize, 1.18);
   drawLogo(ctx, width, height, scene, image);
 };
@@ -142,19 +150,19 @@ const drawNewsTemplate = (ctx, width, height, scene, colors, image) => {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
 
-  ctx.font = `700 ${layout.labelSize}px "Space Mono", monospace`;
+  setBodyFont(ctx, layout.labelSize, 600);
   ctx.fillText(scene.news.category, margin, margin);
 
-  ctx.font = `900 ${layout.headlineSize}px "Archivo Black", sans-serif`;
+  setHeadlineFont(ctx, layout.headlineSize);
   drawMultiline(ctx, scene.news.headline, margin, height * 0.22, layout.headlineSize, 0.92);
 
-  ctx.font = `700 ${layout.bodySize}px "Manrope", sans-serif`;
+  setBodyFont(ctx, layout.bodySize, 500);
   const bodyLines = scene.news.body.split('\n');
   bodyLines.forEach((line, index) => {
     ctx.fillText(line, margin, height * 0.52 + index * layout.bodySize * 1.32);
   });
 
-  ctx.font = `700 ${layout.footerSize}px "Manrope", sans-serif`;
+  setBodyFont(ctx, layout.footerSize, 500);
   drawMultiline(ctx, `${scene.news.footerLeft}\n${scene.news.footerRight}`, margin, height - margin * 2.1, layout.footerSize, 1.18);
   drawLogo(ctx, width, height, scene, image);
 };
@@ -177,18 +185,18 @@ const drawAgendaTemplate = (ctx, width, height, scene, colors, image) => {
     const rowY = top + index * (rowHeight + layout.rowGap);
 
     ctx.textAlign = 'left';
-    ctx.font = `800 ${layout.dateSize}px "Manrope", sans-serif`;
+    setBodyFont(ctx, layout.dateSize, 700);
     ctx.fillText(item.date, margin, rowY);
 
-    ctx.font = `900 ${layout.titleSize}px "Archivo Black", sans-serif`;
+    setHeadlineFont(ctx, layout.titleSize);
     drawMultiline(ctx, `${item.title1}\n${item.title2}`, contentX, rowY, layout.titleSize, 0.88);
 
     const metaY = rowY + layout.titleSize * 1.95;
-    ctx.font = `700 ${layout.metaSize}px "Manrope", sans-serif`;
+    setBodyFont(ctx, layout.metaSize, 500);
     drawMultiline(ctx, `${item.start}\n${item.duration}\n${item.location}`, contentX, metaY, layout.metaSize, 1.08);
   });
 
-  ctx.font = `700 ${layout.footerSize}px "Manrope", sans-serif`;
+  setBodyFont(ctx, layout.footerSize, 500);
   drawMultiline(ctx, `${scene.agenda.registrationLabel}\n${scene.agenda.registrationValue}`, margin, height - margin * 2.1, layout.footerSize, 1.18);
   drawLogo(ctx, width, height, scene, image);
 };

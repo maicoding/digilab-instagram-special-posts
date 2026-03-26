@@ -63,12 +63,12 @@ const fillBackground = (ctx, width, height, scene, colors) => {
   ctx.fillRect(0, 0, width, height);
 };
 
-const setHeadlineFont = (ctx, size, weight = 700) => {
-  ctx.font = `${weight} ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+const setHeadlineFont = (ctx, size, weight = 600) => {
+  ctx.font = `${weight} ${size}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
 };
 
 const setBodyFont = (ctx, size, weight = 400) => {
-  ctx.font = `${weight} ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.font = `${weight} ${size}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
 };
 
 const measureBlockHeight = (lineCount, size, leading) => Math.max(0, lineCount) * size * leading;
@@ -159,11 +159,11 @@ const getLayout = (templateId, width, height) => {
 
   return {
     margin: baseMargin,
-    dateSize: isStory ? width * 0.05 : isLandscape ? height * 0.085 : width * 0.05,
-    titleSize: isStory ? width * 0.056 : isLandscape ? height * 0.075 : width * 0.054,
-    metaSize: isStory ? width * 0.026 : isLandscape ? height * 0.045 : width * 0.028,
+    dateSize: isStory ? width * 0.048 : isLandscape ? height * 0.08 : width * 0.047,
+    titleSize: isStory ? width * 0.0575 : isLandscape ? height * 0.072 : width * 0.056,
+    metaSize: isStory ? width * 0.026 : isLandscape ? height * 0.04 : width * 0.026,
     footerSize: isStory ? width * 0.03 : width * 0.034,
-    rowGap: isStory ? height * 0.03 : isLandscape ? height * 0.07 : height * 0.028,
+    rowGap: isStory ? height * 0.022 : isLandscape ? height * 0.055 : height * 0.022,
   };
 };
 
@@ -208,7 +208,7 @@ const drawCoverTemplate = (ctx, width, height, scene, colors, image) => {
     weight: 700,
     maxLines: 4,
   });
-  setHeadlineFont(ctx, headline.size, 700);
+  setHeadlineFont(ctx, headline.size, 600);
   drawLines(ctx, headline.lines, width / 2, layout.headlineY, headline.size, 0.92);
 
   setBodyFont(ctx, layout.arrowSize, 400);
@@ -241,7 +241,7 @@ const drawNewsTemplate = (ctx, width, height, scene, colors, image) => {
     weight: 700,
     maxLines: 4,
   });
-  setHeadlineFont(ctx, headline.size, 700);
+  setHeadlineFont(ctx, headline.size, 600);
   drawLines(ctx, headline.lines, margin, height * 0.22, headline.size, 0.92);
 
   const bodyBlock = fitTextBlock(ctx, {
@@ -288,7 +288,7 @@ const drawAgendaTemplate = (ctx, width, height, scene, colors, image) => {
       minSize: Math.round(layout.titleSize * 0.72),
       leading: 0.92,
       setFont: setHeadlineFont,
-      weight: 700,
+      weight: 600,
       maxLines: 3,
     });
     const metaBlock = fitTextBlock(ctx, {
@@ -304,10 +304,10 @@ const drawAgendaTemplate = (ctx, width, height, scene, colors, image) => {
     });
 
     ctx.textAlign = 'left';
-    setBodyFont(ctx, layout.dateSize, 400);
+    setBodyFont(ctx, layout.dateSize, 600);
     ctx.fillText(item.date, margin, rowY);
 
-    setHeadlineFont(ctx, titleBlock.size, 700);
+    setHeadlineFont(ctx, titleBlock.size, 600);
     drawLines(ctx, titleBlock.lines, contentX, rowY, titleBlock.size, 0.92);
 
     const metaY = rowY + titleBlock.height + titleBlock.size * 0.28;

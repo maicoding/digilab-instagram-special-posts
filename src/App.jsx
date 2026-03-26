@@ -207,6 +207,14 @@ const App = () => {
     }));
   };
 
+  const setCustomBackground = (color) => {
+    setScene((current) => ({
+      ...current,
+      customBackground: color,
+      useCustomBackground: true,
+    }));
+  };
+
   const handleLogoUpload = (event) => {
     const file = event.target.files?.[0];
     if (!file) {
@@ -367,8 +375,8 @@ const App = () => {
             ))}
           </div>
           <ToggleField label="Eigene Hintergrundfarbe" checked={scene.useCustomBackground} onChange={(value) => updateScene('useCustomBackground', value)} />
-          <ColorField label="Custom Background" value={scene.customBackground} onChange={(value) => updateScene('customBackground', value)} />
-          <PaletteSwatches onPick={(color) => updateScene('customBackground', color)} />
+          <ColorField label="Custom Background" value={scene.customBackground} onChange={setCustomBackground} />
+          <PaletteSwatches onPick={setCustomBackground} />
         </Section>
 
         <Section title="Logo" icon={ImagePlus}>

@@ -75,6 +75,15 @@ export const COLOR_PRESETS = [
     muted: 'rgba(0,0,0,0.78)',
   },
   {
+    id: 'gruen-weiss',
+    label: 'Grün / Weiß',
+    background: '#00FF0A',
+    panel: '#00F10A',
+    accent: '#FFFFFF',
+    text: '#FFFFFF',
+    muted: 'rgba(255,255,255,0.9)',
+  },
+  {
     id: 'orange-weiss',
     label: 'Orange / Weiß',
     background: '#FF6E00',
@@ -125,28 +134,6 @@ export const BUILT_IN_LOGOS = [
     src: '/logos/digilab-ai-kombi-black.png',
     defaults: {
       tint: '#FFFFFF',
-      preserveColor: false,
-      removeWhite: true,
-      whiteThreshold: 240,
-    },
-  },
-  {
-    id: 'digilab-ai-gelb',
-    name: 'digilab.ai Gelb',
-    src: '/logos/dwd-digilab-ai-gelb.svg',
-    defaults: {
-      tint: '#FFF500',
-      preserveColor: true,
-      removeWhite: false,
-      whiteThreshold: 240,
-    },
-  },
-  {
-    id: 'dwd-bildmarke',
-    name: 'DWD Bildmarke',
-    src: '/logos/dwd-bildmarke-blau.png',
-    defaults: {
-      tint: '#3355FF',
       preserveColor: false,
       removeWhite: true,
       whiteThreshold: 240,

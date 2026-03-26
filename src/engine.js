@@ -63,12 +63,72 @@ const fillBackground = (ctx, width, height, scene, colors) => {
   ctx.fillRect(0, 0, width, height);
 };
 
-const setHeadlineFont = (ctx, size) => {
-  ctx.font = `800 ${size}px "Montserrat", "Manrope", sans-serif`;
+const setHeadlineFont = (ctx, size, weight = 700) => {
+  ctx.font = `${weight} ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
 };
 
-const setBodyFont = (ctx, size, weight = 500) => {
-  ctx.font = `${weight} ${size}px "Montserrat", "Manrope", sans-serif`;
+const setBodyFont = (ctx, size, weight = 400) => {
+  ctx.font = `${weight} ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+};
+
+const measureBlockHeight = (lineCount, size, leading) => Math.max(0, lineCount) * size * leading;
+
+const wrapTextLines = (ctx, text, maxWidth) => {
+  const paragraphs = String(text ?? '').split('\n');
+  const lines = [];
+
+  paragraphs.forEach((paragraph) => {
+    const words = paragraph.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) {
+      lines.push('');
+      return;
+    }
+
+    let line = words[0];
+    for (let index = 1; index < words.length; index += 1) {
+      const candidate = `${line} ${words[index]}`;
+      if (ctx.measureText(candidate).width <= maxWidth) {
+        line = candidate;
+      } else {
+        lines.push(line);
+        line = words[index];
+      }
+    }
+    lines.push(line);
+  });
+
+  return lines;
+};
+
+const fitTextBlock = (ctx, options) => {
+  const {
+    text,
+    maxWidth,
+    maxHeight,
+    startSize,
+    minSize,
+    leading,
+    setFont,
+    weight,
+    maxLines,
+  } = options;
+
+  for (let size = startSize; size >= minSize; size -= 1) {
+    setFont(ctx, size, weight);
+    const lines = wrapTextLines(ctx, text, maxWidth);
+    const blockHeight = measureBlockHeight(lines.length, size, leading);
+    if (lines.length <= maxLines && blockHeight <= maxHeight) {
+      return { size, lines, height: blockHeight };
+    }
+  }
+
+  setFont(ctx, minSize, weight);
+  const lines = wrapTextLines(ctx, text, maxWidth).slice(0, maxLines);
+  return {
+    size: minSize,
+    lines,
+    height: measureBlockHeight(lines.length, minSize, leading),
+  };
 };
 
 const getLayout = (templateId, width, height) => {
@@ -126,19 +186,36 @@ const drawMultiline = (ctx, text, x, y, size, leading = 0.92) => {
   });
 };
 
+const drawLines = (ctx, lines, x, y, size, leading = 1) => {
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x, y + index * size * leading);
+  });
+};
+
 const drawCoverTemplate = (ctx, width, height, scene, colors, image) => {
   const layout = getLayout('cover', width, height);
   ctx.fillStyle = colors.text;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  setHeadlineFont(ctx, layout.headlineSize);
-  drawMultiline(ctx, scene.cover.headline, width / 2, layout.headlineY, layout.headlineSize, 0.9);
+  const headline = fitTextBlock(ctx, {
+    text: scene.cover.headline,
+    maxWidth: width - layout.margin * 2,
+    maxHeight: height * 0.22,
+    startSize: Math.round(layout.headlineSize),
+    minSize: Math.round(layout.headlineSize * 0.62),
+    leading: 0.92,
+    setFont: setHeadlineFont,
+    weight: 700,
+    maxLines: 4,
+  });
+  setHeadlineFont(ctx, headline.size, 700);
+  drawLines(ctx, headline.lines, width / 2, layout.headlineY, headline.size, 0.92);
 
-  setBodyFont(ctx, layout.arrowSize, 700);
-  ctx.fillText(scene.cover.arrow, width / 2, layout.headlineY + layout.headlineSize * 2.05);
+  setBodyFont(ctx, layout.arrowSize, 400);
+  ctx.fillText(scene.cover.arrow, width / 2, layout.headlineY + headline.height + layout.headlineSize * 0.2);
 
   ctx.textAlign = 'left';
-  setBodyFont(ctx, layout.footerSize, 500);
+  setBodyFont(ctx, layout.footerSize, 400);
   drawMultiline(ctx, `${scene.cover.kicker}\n${scene.cover.subline}`, layout.margin, layout.footerY, layout.footerSize, 1.18);
   drawLogo(ctx, width, height, scene, image);
 };
@@ -150,19 +227,38 @@ const drawNewsTemplate = (ctx, width, height, scene, colors, image) => {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
 
-  setBodyFont(ctx, layout.labelSize, 600);
+  setBodyFont(ctx, layout.labelSize, 400);
   ctx.fillText(scene.news.category, margin, margin);
 
-  setHeadlineFont(ctx, layout.headlineSize);
-  drawMultiline(ctx, scene.news.headline, margin, height * 0.22, layout.headlineSize, 0.92);
-
-  setBodyFont(ctx, layout.bodySize, 500);
-  const bodyLines = scene.news.body.split('\n');
-  bodyLines.forEach((line, index) => {
-    ctx.fillText(line, margin, height * 0.52 + index * layout.bodySize * 1.32);
+  const headline = fitTextBlock(ctx, {
+    text: scene.news.headline,
+    maxWidth: width - margin * 2,
+    maxHeight: height * 0.22,
+    startSize: Math.round(layout.headlineSize),
+    minSize: Math.round(layout.headlineSize * 0.62),
+    leading: 0.92,
+    setFont: setHeadlineFont,
+    weight: 700,
+    maxLines: 4,
   });
+  setHeadlineFont(ctx, headline.size, 700);
+  drawLines(ctx, headline.lines, margin, height * 0.22, headline.size, 0.92);
 
-  setBodyFont(ctx, layout.footerSize, 500);
+  const bodyBlock = fitTextBlock(ctx, {
+    text: scene.news.body,
+    maxWidth: width - margin * 2,
+    maxHeight: height * 0.22,
+    startSize: Math.round(layout.bodySize),
+    minSize: Math.round(layout.bodySize * 0.78),
+    leading: 1.26,
+    setFont: setBodyFont,
+    weight: 400,
+    maxLines: 8,
+  });
+  setBodyFont(ctx, bodyBlock.size, 400);
+  drawLines(ctx, bodyBlock.lines, margin, height * 0.52, bodyBlock.size, 1.26);
+
+  setBodyFont(ctx, layout.footerSize, 400);
   drawMultiline(ctx, `${scene.news.footerLeft}\n${scene.news.footerRight}`, margin, height - margin * 2.1, layout.footerSize, 1.18);
   drawLogo(ctx, width, height, scene, image);
 };
@@ -183,20 +279,43 @@ const drawAgendaTemplate = (ctx, width, height, scene, colors, image) => {
 
   scene.agenda.items.forEach((item, index) => {
     const rowY = top + index * (rowHeight + layout.rowGap);
+    const titleMaxWidth = width - contentX - margin;
+    const titleBlock = fitTextBlock(ctx, {
+      text: `${item.title1} ${item.title2}`.trim(),
+      maxWidth: titleMaxWidth,
+      maxHeight: rowHeight * 0.5,
+      startSize: Math.round(layout.titleSize),
+      minSize: Math.round(layout.titleSize * 0.72),
+      leading: 0.92,
+      setFont: setHeadlineFont,
+      weight: 700,
+      maxLines: 3,
+    });
+    const metaBlock = fitTextBlock(ctx, {
+      text: `${item.start}\n${item.duration}\n${item.location}`,
+      maxWidth: titleMaxWidth,
+      maxHeight: rowHeight - titleBlock.height - layout.metaSize * 0.45,
+      startSize: Math.round(layout.metaSize),
+      minSize: Math.round(layout.metaSize * 0.8),
+      leading: 1.14,
+      setFont: setBodyFont,
+      weight: 400,
+      maxLines: 4,
+    });
 
     ctx.textAlign = 'left';
-    setBodyFont(ctx, layout.dateSize, 700);
+    setBodyFont(ctx, layout.dateSize, 400);
     ctx.fillText(item.date, margin, rowY);
 
-    setHeadlineFont(ctx, layout.titleSize);
-    drawMultiline(ctx, `${item.title1}\n${item.title2}`, contentX, rowY, layout.titleSize, 0.88);
+    setHeadlineFont(ctx, titleBlock.size, 700);
+    drawLines(ctx, titleBlock.lines, contentX, rowY, titleBlock.size, 0.92);
 
-    const metaY = rowY + layout.titleSize * 1.95;
-    setBodyFont(ctx, layout.metaSize, 500);
-    drawMultiline(ctx, `${item.start}\n${item.duration}\n${item.location}`, contentX, metaY, layout.metaSize, 1.08);
+    const metaY = rowY + titleBlock.height + titleBlock.size * 0.28;
+    setBodyFont(ctx, metaBlock.size, 400);
+    drawLines(ctx, metaBlock.lines, contentX, metaY, metaBlock.size, 1.14);
   });
 
-  setBodyFont(ctx, layout.footerSize, 500);
+  setBodyFont(ctx, layout.footerSize, 400);
   drawMultiline(ctx, `${scene.agenda.registrationLabel}\n${scene.agenda.registrationValue}`, margin, height - margin * 2.1, layout.footerSize, 1.18);
   drawLogo(ctx, width, height, scene, image);
 };

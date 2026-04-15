@@ -72,6 +72,7 @@ textarea {
   display: grid;
   grid-template-columns: 430px minmax(0, 1fr);
   min-height: 100vh;
+  align-items: start;
 }
 
 .sidebar {
@@ -80,7 +81,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  overflow-y: auto;
+  overflow: visible;
   background: linear-gradient(180deg, rgba(12, 12, 15, 0.98), rgba(17, 16, 22, 0.98));
   border-right: 1px solid var(--line);
 }
@@ -88,8 +89,7 @@ textarea {
 .sidebar__header,
 .workspace__header,
 .panel,
-.stage,
-.reference-card {
+.stage {
   box-shadow: var(--shadow);
 }
 
@@ -104,8 +104,7 @@ textarea {
 }
 
 .sidebar__header h1,
-.workspace__header h2,
-.reference-card h3 {
+.workspace__header h2 {
   margin: 0;
 }
 
@@ -117,12 +116,15 @@ textarea {
 
 .workspace {
   min-width: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   gap: 22px;
   padding: 22px;
-  overflow: auto;
+  overflow: visible;
 }
 
 .workspace__header {
@@ -141,8 +143,7 @@ textarea {
   font-size: 1.2rem;
 }
 
-.workspace__header p,
-.reference-card p {
+.workspace__header p {
   margin: 0;
   color: var(--text-muted);
   max-width: 26rem;
@@ -347,7 +348,8 @@ textarea {
 
 .stage-shell {
   flex: 1;
-  min-height: 420px;
+  min-height: 0;
+  max-height: calc(100vh - 44px - 22px - 22px);
   border-radius: 28px;
   border: 1px solid var(--line);
   background:
@@ -372,29 +374,6 @@ textarea {
   display: block;
 }
 
-.reference-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 18px;
-  padding: 18px;
-  border-radius: 24px;
-  border: 1px solid var(--line);
-  background: rgba(14, 14, 18, 0.88);
-}
-
-.reference-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.reference-grid img {
-  width: 100%;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.03);
-}
-
 .sidebar,
 .workspace {
   scrollbar-width: thin;
@@ -406,22 +385,32 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .workspace {
+    position: static;
+    top: auto;
+    height: auto;
+  }
+
   .sidebar {
     min-height: auto;
-    max-height: 65vh;
+    max-height: none;
+    overflow: auto;
   }
 }
 
 @media (max-width: 760px) {
   .field-grid,
-  .library-grid,
-  .reference-card,
-  .reference-grid {
+  .library-grid {
     grid-template-columns: 1fr;
   }
 
   .workspace__header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .stage-shell {
+    min-height: 420px;
+    max-height: none;
   }
 }

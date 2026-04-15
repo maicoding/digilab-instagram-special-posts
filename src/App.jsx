@@ -459,7 +459,7 @@ const App = () => {
             <div className="eyebrow">Preview</div>
             <h2>Spezialgenerator für Cover, News und Terminposts im DigiLab-Look.</h2>
           </div>
-          <p>Die Layouts orientieren sich an deinen gelieferten Vorlagen und bleiben für alle Instagram-Formate exportierbar.</p>
+          <p>Die Vorschau bleibt beim Einstellen sichtbar, damit Format, Typo und Farbwirkung direkt kontrollierbar bleiben.</p>
         </div>
 
         <div className="stage-shell" ref={stageRef}>
@@ -480,18 +480,6 @@ const App = () => {
                 height: preset.height * previewScale,
               }}
             />
-          </div>
-        </div>
-
-        <div className="reference-card">
-          <div>
-            <div className="eyebrow">Referenzen</div>
-            <h3>Vorlagenbasis</h3>
-            <p>Links sind die beiden gelieferten Post-Beispiele als Referenz hinterlegt, damit die neue App eng daran ausgerichtet bleibt.</p>
-          </div>
-          <div className="reference-grid">
-            <img src="/references/cover-template.png" alt="Cover Template" />
-            <img src="/references/list-template.png" alt="List Template" />
           </div>
         </div>
       </main>

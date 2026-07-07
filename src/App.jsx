@@ -159,6 +159,7 @@ const App = () => {
   const [previewZoom, setPreviewZoom] = useState(0.82);
   const [hasDegular, setHasDegular] = useState(false);
   const [typoAdvanced, setTypoAdvanced] = useState(false);
+  const fontInputRef = useRef(null);
   const imageCacheRef = useRef(new Map());
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
@@ -209,7 +210,7 @@ const App = () => {
     const loaded = document.fonts?.check('600 32px Degular') ?? false;
     setHasDegular(loaded);
     if (!loaded) {
-      window.alert('Degular ist nicht geladen. Export ist gesperrt.');
+      fontInputRef.current?.click();
     }
     return loaded;
   };
@@ -283,7 +284,7 @@ const App = () => {
       setAssetVersion((value) => value + 1);
     } catch (error) {
       console.error(error);
-      window.alert('Degular konnte nicht geladen werden.');
+      window.alert('Degular-Datei nicht geladen.');
       URL.revokeObjectURL(src);
     }
     event.target.value = '';
@@ -368,6 +369,7 @@ const App = () => {
 
   return (
     <div className="app-shell">
+      <input ref={fontInputRef} type="file" accept=".otf,.ttf,.woff,.woff2,font/*" className="sr-only" onChange={handleFontUpload} />
       <aside className="sidebar">
         <div className="sidebar__header">
           <div>
@@ -429,7 +431,7 @@ const App = () => {
 
         <Section title="Schrift" icon={Type}>
           <UploadButton label="Degular laden" accept=".otf,.ttf,.woff,.woff2,font/*" onSelect={handleFontUpload} />
-          <div className="asset-note">{hasDegular ? 'Degular geladen.' : 'Degular fehlt. Export bleibt gesperrt.'}</div>
+          <div className="asset-note">{hasDegular ? 'Degular geladen' : 'Degular fehlt'}</div>
           <ToggleField label="Typo Advanced" checked={typoAdvanced} onChange={(value) => {
             setTypoAdvanced(value);
             updateScene('typoAdvanced', value);

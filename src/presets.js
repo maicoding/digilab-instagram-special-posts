@@ -147,6 +147,11 @@ export const createInitialScene = () => ({
   colorPresetId: 'pink-lila',
   customBackground: '#D562EB',
   useCustomBackground: false,
+  guides: {
+    showGrid: false,
+    columns: 12,
+    rows: 12,
+  },
   logo: {
     src: '/logos/digilab-ai-kombi-black.png',
     name: 'DigiLab.ai Kombi',

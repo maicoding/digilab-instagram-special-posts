@@ -401,6 +401,7 @@ const App = () => {
             </div>
             <input type="range" min="0.45" max="1" step="0.01" value={previewZoom} onChange={(event) => setPreviewZoom(Number(event.target.value))} />
           </label>
+          <ToggleField label="Grid einblenden" checked={scene.guides?.showGrid ?? false} onChange={(value) => updateScene('guides.showGrid', value)} />
           <button className="accent-button" type="button" onClick={exportPng}>
             <Download size={16} />
             PNG exportieren
@@ -560,6 +561,15 @@ const App = () => {
                 height: preset.height * previewScale,
               }}
             />
+            {scene.guides?.showGrid && (
+              <div
+                className="stage__grid"
+                style={{
+                  '--grid-columns': scene.guides.columns,
+                  '--grid-rows': scene.guides.rows,
+                }}
+              />
+            )}
           </div>
         </div>
       </main>

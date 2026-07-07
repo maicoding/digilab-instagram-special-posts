@@ -535,14 +535,6 @@ const App = () => {
       </aside>
 
       <main className="workspace">
-        <div className="workspace__header">
-          <div>
-            <div className="eyebrow">Preview</div>
-            <h2>Spezialgenerator für Cover, News und Terminposts im DigiLab-Look.</h2>
-          </div>
-          <p>Die Vorschau bleibt beim Einstellen sichtbar, damit Format, Typo und Farbwirkung direkt kontrollierbar bleiben.</p>
-        </div>
-
         <div className="stage-shell" ref={stageRef}>
           <div
             className="stage"

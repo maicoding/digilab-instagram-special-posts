@@ -173,7 +173,7 @@ export const createInitialScene = () => ({
     title: 'WORKSHOPS &\nSPRECHSTUNDEN',
     rangeLabel: 'Datum von bis',
     registrationLabel: 'Anmeldung unter:',
-    registrationValue: 'dwd@fh-dortmund.de',
+    registrationValue: 'ai.digilab@fh-dortmund.de',
     items: [
       { id: 'a1', date: '00.00.', title1: 'Titel Zeile 1', title2: 'Titel Zeile 2', start: 'Start:', duration: 'Dauer:', location: 'Ort/Raum/Online' },
       { id: 'a2', date: '00.00.', title1: 'Titel Zeile 1', title2: 'Titel Zeile 2', start: 'Start:', duration: 'Dauer:', location: 'Ort/Raum/Online' },

@@ -13,7 +13,6 @@ import {
   BUILT_IN_LOGOS,
   CANVAS_PRESETS,
   COLOR_PRESETS,
-  GOOGLE_FONTS,
   TEMPLATE_OPTIONS,
   createInitialScene,
 } from './presets.js';
@@ -29,9 +28,10 @@ const deepSet = (source, path, value) => {
       cursor[key] = value;
       return;
     }
-    cursor[key] = Array.isArray(original[key]) ? [...original[key]] : { ...original[key] };
+    const nextOriginal = original?.[key];
+    cursor[key] = Array.isArray(nextOriginal) ? [...nextOriginal] : { ...(nextOriginal ?? {}) };
     cursor = cursor[key];
-    original = original[key];
+    original = nextOriginal ?? {};
   });
   return clone;
 };
@@ -83,7 +83,7 @@ const TextField = ({ label, value, onChange }) => (
     <div className="field__head">
       <span>{label}</span>
     </div>
-    <input type="text" value={value} onChange={(event) => onChange(event.target.value)} />
+    <textarea rows={2} value={value} onChange={(event) => onChange(event.target.value)} />
   </label>
 );
 
@@ -110,6 +110,16 @@ const ToggleField = ({ label, checked, onChange }) => (
   <label className="toggle">
     <span>{label}</span>
     <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+  </label>
+);
+
+const SliderField = ({ label, value, min, max, step = 0.01, onChange, format }) => (
+  <label className="field">
+    <div className="field__head">
+      <span>{label}</span>
+      <span>{format ? format(value) : value}</span>
+    </div>
+    <input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} />
   </label>
 );
 
@@ -147,6 +157,8 @@ const App = () => {
   const [logoLibrary, setLogoLibrary] = useState(BUILT_IN_LOGOS);
   const [assetVersion, setAssetVersion] = useState(0);
   const [previewZoom, setPreviewZoom] = useState(0.82);
+  const [hasDegular, setHasDegular] = useState(false);
+  const [typoAdvanced, setTypoAdvanced] = useState(false);
   const imageCacheRef = useRef(new Map());
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
@@ -156,7 +168,10 @@ const App = () => {
   const colorScheme = COLOR_PRESETS.find((item) => item.id === scene.colorPresetId) ?? COLOR_PRESETS[0];
 
   useEffect(() => {
-    document.fonts?.ready.then(() => setAssetVersion((value) => value + 1));
+    document.fonts?.ready.then(() => {
+      setHasDegular(document.fonts?.check('600 32px Degular') ?? false);
+      setAssetVersion((value) => value + 1);
+    });
   }, []);
 
   const getImage = (src) => {
@@ -189,6 +204,15 @@ const App = () => {
   }, [preset.height, preset.width, previewZoom, stageSize.height, stageSize.width]);
 
   const updateScene = (path, value) => setScene((current) => deepSet(current, path, value));
+
+  const requireDegular = () => {
+    const loaded = document.fonts?.check('600 32px Degular') ?? false;
+    setHasDegular(loaded);
+    if (!loaded) {
+      window.alert('Degular ist nicht geladen. Export ist gesperrt.');
+    }
+    return loaded;
+  };
 
   const applyColorPreset = (presetId) => {
     const scheme = COLOR_PRESETS.find((item) => item.id === presetId);
@@ -242,6 +266,26 @@ const App = () => {
         preserveColor: true,
       },
     }));
+    event.target.value = '';
+  };
+
+  const handleFontUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    const src = URL.createObjectURL(file);
+    try {
+      const face = new FontFace('Degular', `url(${src})`, { style: 'normal', weight: '400 800' });
+      await face.load();
+      document.fonts.add(face);
+      setHasDegular(true);
+      setAssetVersion((value) => value + 1);
+    } catch (error) {
+      console.error(error);
+      window.alert('Degular konnte nicht geladen werden.');
+      URL.revokeObjectURL(src);
+    }
     event.target.value = '';
   };
 
@@ -299,6 +343,9 @@ const App = () => {
   };
 
   const exportPng = () => {
+    if (!requireDegular()) {
+      return;
+    }
     const exportCanvas = document.createElement('canvas');
     exportCanvas.width = preset.width;
     exportCanvas.height = preset.height;
@@ -377,6 +424,39 @@ const App = () => {
           <ToggleField label="Eigene Hintergrundfarbe" checked={scene.useCustomBackground} onChange={(value) => updateScene('useCustomBackground', value)} />
           <ColorField label="Custom Background" value={scene.customBackground} onChange={setCustomBackground} />
           <PaletteSwatches onPick={setCustomBackground} />
+        </Section>
+
+        <Section title="Schrift" icon={Type}>
+          <UploadButton label="Degular laden" accept=".otf,.ttf,.woff,.woff2,font/*" onSelect={handleFontUpload} />
+          <div className="asset-note">{hasDegular ? 'Degular geladen.' : 'Degular fehlt. Export bleibt gesperrt.'}</div>
+          <ToggleField label="Typo Advanced" checked={typoAdvanced} onChange={(value) => {
+            setTypoAdvanced(value);
+            updateScene('typoAdvanced', value);
+          }} />
+          {typoAdvanced && (
+            <>
+              <div className="asset-note">Advanced verändert die CI-Satzwerte bewusst.</div>
+              {scene.templateId === 'cover' && (
+                <div className="field-grid">
+                  <SliderField label="Headline Y" value={scene.typoControls?.cover?.headlineY ?? 398} min={40} max={820} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineY', value)} />
+                  <SliderField label="Headline Size" value={scene.typoControls?.cover?.headlineSize ?? 114} min={48} max={180} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineSize', value)} />
+                  <SliderField label="Footer Y" value={scene.typoControls?.cover?.footerY ?? 980} min={720} max={1040} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.footerY', value)} />
+                </div>
+              )}
+              {scene.templateId === 'news' && (
+                <div className="field-grid">
+                  <SliderField label="Headline Size" value={scene.typoControls?.news?.headlineSize ?? 99} min={42} max={150} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.headlineSize', value)} />
+                  <SliderField label="Body Size" value={scene.typoControls?.news?.bodySize ?? 50} min={18} max={72} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.bodySize', value)} />
+                </div>
+              )}
+              {scene.templateId === 'agenda' && (
+                <div className="field-grid">
+                  <SliderField label="Agenda Top" value={scene.typoControls?.agenda?.agendaTop ?? 33} min={24} max={360} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.agendaTop', value)} />
+                  <SliderField label="Title Size" value={scene.typoControls?.agenda?.titleSize ?? 60} min={24} max={100} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.titleSize', value)} />
+                </div>
+              )}
+            </>
+          )}
         </Section>
 
         <Section title="Logo" icon={ImagePlus}>

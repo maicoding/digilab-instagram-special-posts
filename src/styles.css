@@ -1,4 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bebas+Neue&family=Manrope:wght@400;500;700;800&family=Montserrat:wght@400;600;700;800&family=Outfit:wght@400;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@700;800&family=Unbounded:wght@400;600;700&display=swap');
+@font-face {
+  font-family: 'Degular';
+  src:
+    local('Degular Semibold'),
+    local('Degular-Semibold'),
+    local('Degular Medium'),
+    local('Degular-Medium'),
+    local('Degular');
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: block;
+}
 
 :root {
   --bg-main: #08080a;
@@ -30,7 +41,7 @@ body {
     radial-gradient(circle at top right, rgba(255, 245, 0, 0.08), transparent 24%),
     linear-gradient(180deg, #08080a 0%, #111015 100%);
   color: var(--text-main);
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Degular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   overflow: auto;
 }
 
@@ -109,7 +120,7 @@ textarea {
 }
 
 .sidebar__header h1 {
-  font-family: 'Archivo Black', sans-serif;
+  font-family: 'Degular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 1.9rem;
   line-height: 0.95;
 }

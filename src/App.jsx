@@ -160,6 +160,7 @@ const App = () => {
   const [hasDegular, setHasDegular] = useState(false);
   const [typoAdvanced, setTypoAdvanced] = useState(false);
   const fontInputRef = useRef(null);
+  const [dragTarget, setDragTarget] = useState(null);
   const imageCacheRef = useRef(new Map());
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
@@ -205,6 +206,75 @@ const App = () => {
   }, [preset.height, preset.width, previewZoom, stageSize.height, stageSize.width]);
 
   const updateScene = (path, value) => setScene((current) => deepSet(current, path, value));
+
+  const baseLayout = useMemo(() => {
+    const isStory = preset.height / preset.width > 1.6;
+    const isLandscape = preset.width / preset.height > 1.6;
+    const baseMargin = isStory ? preset.width * 0.075 : isLandscape ? preset.height * 0.09 : preset.width * 0.07;
+    const scaleX = preset.width / 1080;
+    const scaleY = preset.height / 1080;
+    const scale = Math.min(scaleX, scaleY);
+    if (scene.templateId === 'cover') {
+      return {
+        headlineX: preset.width / 2,
+        headlineY: isStory ? preset.height * 0.38 : isLandscape ? preset.height * 0.34 : 398 * scaleY,
+        footerX: isStory ? preset.width * 0.075 : isLandscape ? preset.height * 0.09 : 35 * scaleX,
+        footerY: isStory ? preset.height - baseMargin * 1.2 : 980 * scaleY,
+      };
+    }
+    if (scene.templateId === 'news') {
+      return {
+        categoryX: baseMargin,
+        categoryY: baseMargin,
+        headlineX: baseMargin,
+        headlineY: preset.height * 0.22,
+        bodyX: baseMargin,
+        bodyY: preset.height * 0.52,
+        footerX: baseMargin,
+        footerY: preset.height - baseMargin * 2.1,
+      };
+    }
+    return {
+      dateX: isStory ? baseMargin : 35 * scaleX,
+      agendaTop: isStory ? baseMargin : 33 * scaleY,
+      contentX: isStory ? baseMargin + preset.width * 0.24 : 274 * scaleX,
+      footerX: isStory ? baseMargin : 35 * scaleX,
+      footerY: isStory ? preset.height - baseMargin * 2.1 : 980 * scaleY,
+    };
+  }, [preset.height, preset.width, scene.templateId]);
+
+  const readLayoutValue = (key) => scene.typoControls?.[scene.templateId]?.[key] ?? baseLayout[key];
+
+  const dragHandles = useMemo(() => {
+    if (scene.templateId === 'cover') {
+      return [
+        { id: 'cover-title', label: 'Titel', xKey: 'headlineX', yKey: 'headlineY' },
+        { id: 'cover-footer', label: 'Footer', xKey: 'footerX', yKey: 'footerY' },
+      ];
+    }
+    if (scene.templateId === 'news') {
+      return [
+        { id: 'news-category', label: 'Kategorie', xKey: 'categoryX', yKey: 'categoryY' },
+        { id: 'news-title', label: 'Titel', xKey: 'headlineX', yKey: 'headlineY' },
+        { id: 'news-text', label: 'Text', xKey: 'bodyX', yKey: 'bodyY' },
+        { id: 'news-footer', label: 'Footer', xKey: 'footerX', yKey: 'footerY' },
+      ];
+    }
+    return [
+      { id: 'agenda-date', label: 'Datum', xKey: 'dateX', yKey: 'agendaTop' },
+      { id: 'agenda-title', label: 'Titel', xKey: 'contentX', yKey: 'agendaTop' },
+      { id: 'agenda-footer', label: 'Anmeldung', xKey: 'footerX', yKey: 'footerY' },
+    ];
+  }, [scene.templateId]);
+
+  const moveDragTarget = (event) => {
+    if (!dragTarget) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(preset.width, ((event.clientX - rect.left) / rect.width) * preset.width));
+    const y = Math.max(0, Math.min(preset.height, ((event.clientY - rect.top) / rect.height) * preset.height));
+    updateScene(`typoControls.${scene.templateId}.${dragTarget.xKey}`, x);
+    updateScene(`typoControls.${scene.templateId}.${dragTarget.yKey}`, y);
+  };
 
   const requireDegular = () => {
     const loaded = document.fonts?.check('600 32px Degular') ?? false;
@@ -373,7 +443,7 @@ const App = () => {
       <aside className="sidebar">
         <div className="sidebar__header">
           <div>
-            <div className="eyebrow">Special Instagram PNG Generator</div>
+            <div className="eyebrow">Instagram</div>
             <h1>digilab.ai Special Posts</h1>
           </div>
           <button
@@ -398,7 +468,7 @@ const App = () => {
           />
           <label className="field">
             <div className="field__head">
-              <span>Preview Zoom</span>
+              <span>Zoom</span>
               <span>{Math.round(previewZoom * 100)}%</span>
             </div>
             <input type="range" min="0.45" max="1" step="0.01" value={previewZoom} onChange={(event) => setPreviewZoom(Number(event.target.value))} />
@@ -438,24 +508,37 @@ const App = () => {
           }} />
           {typoAdvanced && (
             <>
-              <div className="asset-note">Advanced verändert die CI-Satzwerte bewusst.</div>
               {scene.templateId === 'cover' && (
                 <div className="field-grid">
+                  <SliderField label="Headline X" value={scene.typoControls?.cover?.headlineX ?? baseLayout.headlineX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineX', value)} />
                   <SliderField label="Headline Y" value={scene.typoControls?.cover?.headlineY ?? 398} min={40} max={820} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineY', value)} />
                   <SliderField label="Headline Size" value={scene.typoControls?.cover?.headlineSize ?? 114} min={48} max={180} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineSize', value)} />
+                  <SliderField label="Footer X" value={scene.typoControls?.cover?.footerX ?? baseLayout.footerX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.footerX', value)} />
                   <SliderField label="Footer Y" value={scene.typoControls?.cover?.footerY ?? 980} min={720} max={1040} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.footerY', value)} />
                 </div>
               )}
               {scene.templateId === 'news' && (
                 <div className="field-grid">
+                  <SliderField label="Kategorie X" value={scene.typoControls?.news?.categoryX ?? baseLayout.categoryX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.categoryX', value)} />
+                  <SliderField label="Kategorie Y" value={scene.typoControls?.news?.categoryY ?? baseLayout.categoryY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.categoryY', value)} />
+                  <SliderField label="Headline X" value={scene.typoControls?.news?.headlineX ?? baseLayout.headlineX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.headlineX', value)} />
+                  <SliderField label="Headline Y" value={scene.typoControls?.news?.headlineY ?? baseLayout.headlineY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.headlineY', value)} />
                   <SliderField label="Headline Size" value={scene.typoControls?.news?.headlineSize ?? 99} min={42} max={150} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.headlineSize', value)} />
+                  <SliderField label="Text X" value={scene.typoControls?.news?.bodyX ?? baseLayout.bodyX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.bodyX', value)} />
+                  <SliderField label="Text Y" value={scene.typoControls?.news?.bodyY ?? baseLayout.bodyY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.bodyY', value)} />
                   <SliderField label="Body Size" value={scene.typoControls?.news?.bodySize ?? 50} min={18} max={72} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.bodySize', value)} />
+                  <SliderField label="Footer X" value={scene.typoControls?.news?.footerX ?? baseLayout.footerX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.footerX', value)} />
+                  <SliderField label="Footer Y" value={scene.typoControls?.news?.footerY ?? baseLayout.footerY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.footerY', value)} />
                 </div>
               )}
               {scene.templateId === 'agenda' && (
                 <div className="field-grid">
+                  <SliderField label="Datum X" value={scene.typoControls?.agenda?.dateX ?? baseLayout.dateX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.dateX', value)} />
+                  <SliderField label="Titel X" value={scene.typoControls?.agenda?.contentX ?? baseLayout.contentX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.contentX', value)} />
                   <SliderField label="Agenda Top" value={scene.typoControls?.agenda?.agendaTop ?? 33} min={24} max={360} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.agendaTop', value)} />
                   <SliderField label="Title Size" value={scene.typoControls?.agenda?.titleSize ?? 60} min={24} max={100} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.titleSize', value)} />
+                  <SliderField label="Anmeldung X" value={scene.typoControls?.agenda?.footerX ?? baseLayout.footerX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.footerX', value)} />
+                  <SliderField label="Anmeldung Y" value={scene.typoControls?.agenda?.footerY ?? baseLayout.footerY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.footerY', value)} />
                 </div>
               )}
             </>
@@ -540,6 +623,9 @@ const App = () => {
         <div className="stage-shell" ref={stageRef}>
           <div
             className="stage"
+            onPointerMove={moveDragTarget}
+            onPointerUp={() => setDragTarget(null)}
+            onPointerLeave={() => setDragTarget(null)}
             style={{
               width: preset.width * previewScale,
               height: preset.height * previewScale,
@@ -555,6 +641,25 @@ const App = () => {
                 height: preset.height * previewScale,
               }}
             />
+            {typoAdvanced && dragHandles.map((handle) => (
+              <button
+                key={handle.id}
+                type="button"
+                className={`drag-handle ${dragTarget?.id === handle.id ? 'is-dragging' : ''}`}
+                style={{
+                  left: `${(readLayoutValue(handle.xKey) / preset.width) * 100}%`,
+                  top: `${(readLayoutValue(handle.yKey) / preset.height) * 100}%`,
+                }}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  setDragTarget(handle);
+                }}
+                aria-label={handle.label}
+              >
+                {handle.label}
+              </button>
+            ))}
             {scene.guides?.showGrid && (
               <div
                 className="stage__grid"

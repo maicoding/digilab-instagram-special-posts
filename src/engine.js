@@ -150,8 +150,10 @@ const getLayout = (templateId, width, height) => {
       headlineSize: isStory ? width * 0.1 : isLandscape ? height * 0.16 : 114 * scale,
       arrowSize: isStory ? width * 0.12 : 88 * scale,
       footerSize: isStory ? width * 0.038 : 40 * scale,
+      headlineX: width / 2,
       headlineY: isStory ? height * 0.38 : isLandscape ? height * 0.34 : 398 * scaleY,
       headlineHeight: isStory ? height * 0.24 : 284 * scaleY,
+      footerX: isStory ? width * 0.075 : isLandscape ? height * 0.09 : 35 * scaleX,
       footerY: isStory ? height - baseMargin * 1.2 : 980 * scaleY,
     };
   }
@@ -159,10 +161,18 @@ const getLayout = (templateId, width, height) => {
   if (templateId === 'news') {
     return {
       margin: baseMargin,
+      categoryX: baseMargin,
+      categoryY: baseMargin,
       headlineSize: isStory ? width * 0.108 : isLandscape ? height * 0.18 : width * 0.092,
       bodySize: isStory ? width * 0.042 : isLandscape ? height * 0.07 : width * 0.046,
       labelSize: isStory ? width * 0.032 : width * 0.036,
       footerSize: isStory ? width * 0.03 : width * 0.034,
+      headlineX: baseMargin,
+      headlineY: height * 0.22,
+      bodyX: baseMargin,
+      bodyY: height * 0.52,
+      footerX: baseMargin,
+      footerY: height - baseMargin * 2.1,
     };
   }
 
@@ -175,7 +185,9 @@ const getLayout = (templateId, width, height) => {
     rowGap: isStory ? height * 0.022 : isLandscape ? height * 0.055 : height * 0.022,
     agendaTop: isStory ? baseMargin : 33 * scaleY,
     agendaHeight: isStory ? height - baseMargin * 2.8 : 890 * scaleY,
+    dateX: isStory ? baseMargin : 35 * scaleX,
     contentX: isStory ? baseMargin + width * 0.2 + width * 0.04 : 274 * scaleX,
+    footerX: isStory ? baseMargin : 35 * scaleX,
     footerY: isStory ? height - baseMargin * 2.1 : 980 * scaleY,
   };
 };
@@ -225,14 +237,14 @@ const drawCoverTemplate = (ctx, width, height, scene, colors, image) => {
     maxLines: 4,
   });
   setHeadlineFont(ctx, headline.size, 600);
-  drawLines(ctx, headline.lines, width / 2, layout.headlineY, headline.size, DWD_LEADING.display);
+  drawLines(ctx, headline.lines, layout.headlineX, layout.headlineY, headline.size, DWD_LEADING.display);
 
   setBodyFont(ctx, layout.arrowSize, 400);
-  ctx.fillText(scene.cover.arrow, width / 2, layout.headlineY + headline.height + layout.headlineSize * 0.2);
+  ctx.fillText(scene.cover.arrow, layout.headlineX, layout.headlineY + headline.height + layout.headlineSize * 0.2);
 
   ctx.textAlign = 'left';
   setBodyFont(ctx, layout.footerSize, 400);
-  drawMultiline(ctx, `${scene.cover.kicker}\n${scene.cover.subline}`, layout.margin, layout.footerY, layout.footerSize, DWD_LEADING.micro);
+  drawMultiline(ctx, `${scene.cover.kicker}\n${scene.cover.subline}`, layout.footerX, layout.footerY, layout.footerSize, DWD_LEADING.micro);
   drawLogo(ctx, width, height, scene, image);
 };
 
@@ -247,11 +259,11 @@ const drawNewsTemplate = (ctx, width, height, scene, colors, image) => {
   ctx.textBaseline = 'top';
 
   setBodyFont(ctx, layout.labelSize, 400);
-  ctx.fillText(scene.news.category, margin, margin);
+  ctx.fillText(scene.news.category, layout.categoryX, layout.categoryY);
 
   const headline = fitTextBlock(ctx, {
     text: scene.news.headline,
-    maxWidth: width - margin * 2,
+    maxWidth: width - layout.headlineX - margin,
     maxHeight: height * 0.22,
     startSize: Math.round(layout.headlineSize),
     minSize: Math.round(layout.headlineSize * 0.62),
@@ -261,11 +273,11 @@ const drawNewsTemplate = (ctx, width, height, scene, colors, image) => {
     maxLines: 4,
   });
   setHeadlineFont(ctx, headline.size, 600);
-  drawLines(ctx, headline.lines, margin, height * 0.22, headline.size, DWD_LEADING.display);
+  drawLines(ctx, headline.lines, layout.headlineX, layout.headlineY, headline.size, DWD_LEADING.display);
 
   const bodyBlock = fitTextBlock(ctx, {
     text: scene.news.body,
-    maxWidth: width - margin * 2,
+    maxWidth: width - layout.bodyX - margin,
     maxHeight: height * 0.22,
     startSize: Math.round(layout.bodySize),
     minSize: Math.round(layout.bodySize * 0.78),
@@ -275,10 +287,10 @@ const drawNewsTemplate = (ctx, width, height, scene, colors, image) => {
     maxLines: 8,
   });
   setBodyFont(ctx, bodyBlock.size, 400);
-  drawLines(ctx, bodyBlock.lines, margin, height * 0.52, bodyBlock.size, DWD_LEADING.body);
+  drawLines(ctx, bodyBlock.lines, layout.bodyX, layout.bodyY, bodyBlock.size, DWD_LEADING.body);
 
   setBodyFont(ctx, layout.footerSize, 400);
-  drawMultiline(ctx, `${scene.news.footerLeft}\n${scene.news.footerRight}`, margin, height - margin * 2.1, layout.footerSize, DWD_LEADING.micro);
+  drawMultiline(ctx, `${scene.news.footerLeft}\n${scene.news.footerRight}`, layout.footerX, layout.footerY, layout.footerSize, DWD_LEADING.micro);
   drawLogo(ctx, width, height, scene, image);
 };
 
@@ -326,7 +338,7 @@ const drawAgendaTemplate = (ctx, width, height, scene, colors, image) => {
 
     ctx.textAlign = 'left';
     setBodyFont(ctx, layout.dateSize, 600);
-    drawMultiline(ctx, item.date, margin, rowY, layout.dateSize, DWD_LEADING.micro);
+    drawMultiline(ctx, item.date, layout.dateX, rowY, layout.dateSize, DWD_LEADING.micro);
 
     setHeadlineFont(ctx, titleBlock.size, 600);
     drawLines(ctx, titleBlock.lines, contentX, rowY, titleBlock.size, DWD_LEADING.display);
@@ -337,7 +349,7 @@ const drawAgendaTemplate = (ctx, width, height, scene, colors, image) => {
   });
 
   setBodyFont(ctx, layout.footerSize, 400);
-  drawMultiline(ctx, `${scene.agenda.registrationLabel}\n${scene.agenda.registrationValue}`, margin, layout.footerY, layout.footerSize, DWD_LEADING.micro);
+  drawMultiline(ctx, `${scene.agenda.registrationLabel}\n${scene.agenda.registrationValue}`, layout.footerX, layout.footerY, layout.footerSize, DWD_LEADING.micro);
   drawLogo(ctx, width, height, scene, image);
 };
 

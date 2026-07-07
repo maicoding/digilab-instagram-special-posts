@@ -399,6 +399,29 @@ textarea {
   mix-blend-mode: difference;
 }
 
+.drag-handle {
+  position: absolute;
+  z-index: 4;
+  transform: translate(-50%, -50%);
+  width: auto;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 245, 0, 0.95);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff500;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  cursor: grab;
+}
+
+.drag-handle.is-dragging {
+  cursor: grabbing;
+  background: #fff500;
+  color: #000;
+}
+
 .sidebar,
 .workspace {
   scrollbar-width: thin;

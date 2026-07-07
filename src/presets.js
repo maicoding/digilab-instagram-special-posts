@@ -170,7 +170,7 @@ export const createInitialScene = () => ({
   news: {
     category: 'NEWS',
     headline: 'DIGILAB.AI\nUPDATES',
-    body: 'Neue Workshops, Projekte und Entwicklungen lassen sich hier als klare Instagram-Posts im DigiLab-Look ausspielen.',
+    body: 'Textblock',
     footerLeft: 'Mehr Infos unter:',
     footerRight: 'digilab.ai',
   },

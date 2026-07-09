@@ -76,6 +76,8 @@ const setBodyFont = (ctx, size, weight = 400) => {
   ctx.font = `${weight} ${size}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
 };
 
+const weightValue = (value, fallback) => Number(value ?? fallback);
+
 const measureBlockHeight = (lineCount, size, leading) => Math.max(0, lineCount) * size * leading;
 
 const wrapTextLines = (ctx, text, maxWidth) => {
@@ -233,17 +235,17 @@ const drawCoverTemplate = (ctx, width, height, scene, colors, image) => {
     minSize: Math.round(layout.headlineSize * 0.62),
     leading: DWD_LEADING.display,
     setFont: setHeadlineFont,
-    weight: 700,
+    weight: weightValue(layout.headlineWeight, 700),
     maxLines: 4,
   });
-  setHeadlineFont(ctx, headline.size, 600);
+  setHeadlineFont(ctx, headline.size, weightValue(layout.headlineWeight, 700));
   drawLines(ctx, headline.lines, layout.headlineX, layout.headlineY, headline.size, DWD_LEADING.display);
 
-  setBodyFont(ctx, layout.arrowSize, 400);
+  setBodyFont(ctx, layout.arrowSize, weightValue(layout.arrowWeight, 400));
   ctx.fillText(scene.cover.arrow, layout.headlineX, layout.headlineY + headline.height + layout.headlineSize * 0.2);
 
   ctx.textAlign = 'left';
-  setBodyFont(ctx, layout.footerSize, 400);
+  setBodyFont(ctx, layout.footerSize, weightValue(layout.footerWeight, 400));
   drawMultiline(ctx, `${scene.cover.kicker}\n${scene.cover.subline}`, layout.footerX, layout.footerY, layout.footerSize, DWD_LEADING.micro);
   drawLogo(ctx, width, height, scene, image);
 };
@@ -258,7 +260,7 @@ const drawNewsTemplate = (ctx, width, height, scene, colors, image) => {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
 
-  setBodyFont(ctx, layout.labelSize, 400);
+  setBodyFont(ctx, layout.labelSize, weightValue(layout.categoryWeight, 400));
   ctx.fillText(scene.news.category, layout.categoryX, layout.categoryY);
 
   const headline = fitTextBlock(ctx, {
@@ -269,10 +271,10 @@ const drawNewsTemplate = (ctx, width, height, scene, colors, image) => {
     minSize: Math.round(layout.headlineSize * 0.62),
     leading: DWD_LEADING.display,
     setFont: setHeadlineFont,
-    weight: 700,
+    weight: weightValue(layout.headlineWeight, 700),
     maxLines: 4,
   });
-  setHeadlineFont(ctx, headline.size, 600);
+  setHeadlineFont(ctx, headline.size, weightValue(layout.headlineWeight, 700));
   drawLines(ctx, headline.lines, layout.headlineX, layout.headlineY, headline.size, DWD_LEADING.display);
 
   const bodyBlock = fitTextBlock(ctx, {
@@ -283,13 +285,13 @@ const drawNewsTemplate = (ctx, width, height, scene, colors, image) => {
     minSize: Math.round(layout.bodySize * 0.78),
     leading: DWD_LEADING.body,
     setFont: setBodyFont,
-    weight: 400,
+    weight: weightValue(layout.bodyWeight, 400),
     maxLines: 8,
   });
-  setBodyFont(ctx, bodyBlock.size, 400);
+  setBodyFont(ctx, bodyBlock.size, weightValue(layout.bodyWeight, 400));
   drawLines(ctx, bodyBlock.lines, layout.bodyX, layout.bodyY, bodyBlock.size, DWD_LEADING.body);
 
-  setBodyFont(ctx, layout.footerSize, 400);
+  setBodyFont(ctx, layout.footerSize, weightValue(layout.footerWeight, 400));
   drawMultiline(ctx, `${scene.news.footerLeft}\n${scene.news.footerRight}`, layout.footerX, layout.footerY, layout.footerSize, DWD_LEADING.micro);
   drawLogo(ctx, width, height, scene, image);
 };
@@ -321,7 +323,7 @@ const drawAgendaTemplate = (ctx, width, height, scene, colors, image) => {
       minSize: Math.round(layout.titleSize * 0.72),
       leading: DWD_LEADING.display,
       setFont: setHeadlineFont,
-      weight: 600,
+      weight: weightValue(layout.titleWeight, 600),
       maxLines: 3,
     });
     const metaBlock = fitTextBlock(ctx, {
@@ -332,23 +334,23 @@ const drawAgendaTemplate = (ctx, width, height, scene, colors, image) => {
       minSize: Math.round(layout.metaSize * 0.8),
       leading: DWD_LEADING.body,
       setFont: setBodyFont,
-      weight: 400,
+      weight: weightValue(layout.metaWeight, 400),
       maxLines: 4,
     });
 
     ctx.textAlign = 'left';
-    setBodyFont(ctx, layout.dateSize, 600);
+    setBodyFont(ctx, layout.dateSize, weightValue(layout.dateWeight, 600));
     drawMultiline(ctx, item.date, layout.dateX, rowY, layout.dateSize, DWD_LEADING.micro);
 
-    setHeadlineFont(ctx, titleBlock.size, 600);
+    setHeadlineFont(ctx, titleBlock.size, weightValue(layout.titleWeight, 600));
     drawLines(ctx, titleBlock.lines, contentX, rowY, titleBlock.size, DWD_LEADING.display);
 
     const metaY = rowY + titleBlock.height + titleBlock.size * 0.28;
-    setBodyFont(ctx, metaBlock.size, 400);
+    setBodyFont(ctx, metaBlock.size, weightValue(layout.metaWeight, 400));
     drawLines(ctx, metaBlock.lines, contentX, metaY, metaBlock.size, DWD_LEADING.body);
   });
 
-  setBodyFont(ctx, layout.footerSize, 400);
+  setBodyFont(ctx, layout.footerSize, weightValue(layout.footerWeight, 400));
   drawMultiline(ctx, `${scene.agenda.registrationLabel}\n${scene.agenda.registrationValue}`, layout.footerX, layout.footerY, layout.footerSize, DWD_LEADING.micro);
   drawLogo(ctx, width, height, scene, image);
 };

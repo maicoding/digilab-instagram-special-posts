@@ -78,6 +78,15 @@ const SelectField = ({ label, value, options, onChange }) => (
   </label>
 );
 
+const FONT_WEIGHT_OPTIONS = [
+  { value: '300', label: 'Light 300' },
+  { value: '400', label: 'Regular 400' },
+  { value: '500', label: 'Medium 500' },
+  { value: '600', label: 'Semibold 600' },
+  { value: '700', label: 'Bold 700' },
+  { value: '800', label: 'Heavy 800' },
+];
+
 const TextField = ({ label, value, onChange }) => (
   <label className="field">
     <div className="field__head">
@@ -510,6 +519,8 @@ const App = () => {
             <>
               {scene.templateId === 'cover' && (
                 <div className="field-grid">
+                  <SelectField label="Headline Schriftschnitt" value={String(scene.typoControls?.cover?.headlineWeight ?? 700)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.cover.headlineWeight', Number(value))} />
+                  <SelectField label="Footer Schriftschnitt" value={String(scene.typoControls?.cover?.footerWeight ?? 400)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.cover.footerWeight', Number(value))} />
                   <SliderField label="Headline X" value={scene.typoControls?.cover?.headlineX ?? baseLayout.headlineX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineX', value)} />
                   <SliderField label="Headline Y" value={scene.typoControls?.cover?.headlineY ?? 398} min={40} max={820} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineY', value)} />
                   <SliderField label="Headline Size" value={scene.typoControls?.cover?.headlineSize ?? 114} min={48} max={180} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineSize', value)} />
@@ -519,6 +530,10 @@ const App = () => {
               )}
               {scene.templateId === 'news' && (
                 <div className="field-grid">
+                  <SelectField label="Kategorie Schriftschnitt" value={String(scene.typoControls?.news?.categoryWeight ?? 400)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.news.categoryWeight', Number(value))} />
+                  <SelectField label="Headline Schriftschnitt" value={String(scene.typoControls?.news?.headlineWeight ?? 700)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.news.headlineWeight', Number(value))} />
+                  <SelectField label="Text Schriftschnitt" value={String(scene.typoControls?.news?.bodyWeight ?? 400)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.news.bodyWeight', Number(value))} />
+                  <SelectField label="Footer Schriftschnitt" value={String(scene.typoControls?.news?.footerWeight ?? 400)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.news.footerWeight', Number(value))} />
                   <SliderField label="Kategorie X" value={scene.typoControls?.news?.categoryX ?? baseLayout.categoryX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.categoryX', value)} />
                   <SliderField label="Kategorie Y" value={scene.typoControls?.news?.categoryY ?? baseLayout.categoryY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.categoryY', value)} />
                   <SliderField label="Headline X" value={scene.typoControls?.news?.headlineX ?? baseLayout.headlineX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.headlineX', value)} />
@@ -533,6 +548,10 @@ const App = () => {
               )}
               {scene.templateId === 'agenda' && (
                 <div className="field-grid">
+                  <SelectField label="Datum Schriftschnitt" value={String(scene.typoControls?.agenda?.dateWeight ?? 600)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.agenda.dateWeight', Number(value))} />
+                  <SelectField label="Titel Schriftschnitt" value={String(scene.typoControls?.agenda?.titleWeight ?? 600)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.agenda.titleWeight', Number(value))} />
+                  <SelectField label="Meta Schriftschnitt" value={String(scene.typoControls?.agenda?.metaWeight ?? 400)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.agenda.metaWeight', Number(value))} />
+                  <SelectField label="Footer Schriftschnitt" value={String(scene.typoControls?.agenda?.footerWeight ?? 400)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.agenda.footerWeight', Number(value))} />
                   <SliderField label="Datum X" value={scene.typoControls?.agenda?.dateX ?? baseLayout.dateX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.dateX', value)} />
                   <SliderField label="Titel X" value={scene.typoControls?.agenda?.contentX ?? baseLayout.contentX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.contentX', value)} />
                   <SliderField label="Agenda Top" value={scene.typoControls?.agenda?.agendaTop ?? 33} min={24} max={360} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.agendaTop', value)} />

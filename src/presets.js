@@ -131,7 +131,7 @@ export const BUILT_IN_LOGOS = [
   {
     id: 'digilab-kombi-black',
     name: 'DigiLab.ai Kombi',
-    src: '/logos/digilab-ai-kombi-black.png',
+    src: `${import.meta.env.BASE_URL}logos/digilab-ai-kombi-black.png`,
     defaults: {
       tint: '#FFFFFF',
       preserveColor: false,
@@ -142,6 +142,7 @@ export const BUILT_IN_LOGOS = [
 ];
 
 export const createInitialScene = () => ({
+  fontFamily: 'Arial',
   presetId: 'square',
   templateId: 'cover',
   colorPresetId: 'pink-lila',
@@ -153,7 +154,7 @@ export const createInitialScene = () => ({
     rows: 12,
   },
   logo: {
-    src: '/logos/digilab-ai-kombi-black.png',
+    src: `${import.meta.env.BASE_URL}logos/digilab-ai-kombi-black.png`,
     name: 'DigiLab.ai Kombi',
     tint: '#FFFFFF',
     preserveColor: false,

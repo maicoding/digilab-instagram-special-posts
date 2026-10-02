@@ -16,7 +16,8 @@ import {
   TEMPLATE_OPTIONS,
   createInitialScene,
 } from './presets.js';
-import { renderScene } from './engine.js';
+import { renderScene, getLayout } from './engine.js';
+import { loadLocalDegular, restoreFonts, importFont } from './fonts.js';
 
 const deepSet = (source, path, value) => {
   const keys = path.split('.');
@@ -70,7 +71,7 @@ const SelectField = ({ label, value, options, onChange }) => (
     </div>
     <select value={value} onChange={(event) => onChange(event.target.value)}>
       {options.map((option) => (
-        <option key={option.value ?? option} value={option.value ?? option}>
+        <option key={option.value ?? option.id ?? option} value={option.value ?? option.id ?? option}>
           {option.label ?? option}
         </option>
       ))}
@@ -166,9 +167,15 @@ const App = () => {
   const [logoLibrary, setLogoLibrary] = useState(BUILT_IN_LOGOS);
   const [assetVersion, setAssetVersion] = useState(0);
   const [previewZoom, setPreviewZoom] = useState(0.82);
-  const [hasDegular, setHasDegular] = useState(false);
+  const [fonts, setFonts] = useState([]);
+  const [fontWeight, setFontWeight] = useState('400');
+  const [fontBusy, setFontBusy] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [layoutWarnings, setLayoutWarnings] = useState([]);
+  const exportLock = useRef(false);
+  const uploadUrls = useRef(new Set());
   const [typoAdvanced, setTypoAdvanced] = useState(false);
-  const fontInputRef = useRef(null);
   const [dragTarget, setDragTarget] = useState(null);
   const imageCacheRef = useRef(new Map());
   const canvasRef = useRef(null);
@@ -179,78 +186,61 @@ const App = () => {
   const colorScheme = COLOR_PRESETS.find((item) => item.id === scene.colorPresetId) ?? COLOR_PRESETS[0];
 
   useEffect(() => {
-    document.fonts?.ready.then(() => {
-      setHasDegular(document.fonts?.check('600 32px Degular') ?? false);
+    let active = true;
+    Promise.all([loadLocalDegular(), restoreFonts()]).then(([local, saved]) => {
+      if (!active) return;
+      const available = [...local, ...saved];
+      setFonts(available);
+      if (available.length) setScene((current) => ({ ...current, fontFamily: available.at(-1).family }));
       setAssetVersion((value) => value + 1);
-    });
+    }).catch(() => {
+      if (active) setNotice('Gespeicherte Schriften konnten nicht geladen werden.');
+    }).finally(() => { if (active) setFontBusy(false); });
+    return () => {
+      active = false;
+      for (const url of uploadUrls.current) URL.revokeObjectURL(url);
+    };
   }, []);
 
-  const getImage = (src) => {
-    if (!src) {
-      return null;
-    }
-    const cached = imageCacheRef.current.get(src);
-    if (cached?.status === 'loaded') {
-      return cached.image;
-    }
-    if (cached?.status === 'loading') {
-      return null;
-    }
+  const loadImage = (src) => {
+    if (!src) return Promise.resolve(null);
+    const cache = imageCacheRef.current;
+    if (cache.has(src)) return cache.get(src).promise;
     const image = new Image();
-    image.onload = () => {
-      imageCacheRef.current.set(src, { status: 'loaded', image });
-      setAssetVersion((value) => value + 1);
-    };
-    image.onerror = () => imageCacheRef.current.set(src, { status: 'error', image: null });
+    const entry = { status: 'loading', image: null };
+    entry.promise = new Promise((resolve, reject) => {
+      image.onload = () => {
+        entry.status = 'loaded';
+        entry.image = image;
+        setAssetVersion((value) => value + 1);
+        resolve(image);
+      };
+      image.onerror = () => {
+        entry.status = 'error';
+        reject(new Error('Das Logo konnte nicht geladen werden. Bitte eine gültige Bilddatei wählen.'));
+      };
+    });
+    cache.set(src, entry);
     image.src = src;
-    imageCacheRef.current.set(src, { status: 'loading', image: null });
-    return null;
+    return entry.promise;
+  };
+
+  const getImage = (src) => {
+    const cached = imageCacheRef.current.get(src);
+    if (!cached) loadImage(src).catch((error) => setNotice(error.message));
+    return cached?.image ?? null;
   };
 
   const previewScale = useMemo(() => {
     if (!stageSize.width || !stageSize.height) {
       return previewZoom;
     }
-    return Math.min((stageSize.width - 80) / preset.width, (stageSize.height - 80) / preset.height, 1) * previewZoom;
+    return Math.max(0.01, Math.min((stageSize.width - 32) / preset.width, (stageSize.height - 32) / preset.height, 1)) * previewZoom;
   }, [preset.height, preset.width, previewZoom, stageSize.height, stageSize.width]);
 
   const updateScene = (path, value) => setScene((current) => deepSet(current, path, value));
 
-  const baseLayout = useMemo(() => {
-    const isStory = preset.height / preset.width > 1.6;
-    const isLandscape = preset.width / preset.height > 1.6;
-    const baseMargin = isStory ? preset.width * 0.075 : isLandscape ? preset.height * 0.09 : preset.width * 0.07;
-    const scaleX = preset.width / 1080;
-    const scaleY = preset.height / 1080;
-    const scale = Math.min(scaleX, scaleY);
-    if (scene.templateId === 'cover') {
-      return {
-        headlineX: preset.width / 2,
-        headlineY: isStory ? preset.height * 0.38 : isLandscape ? preset.height * 0.34 : 398 * scaleY,
-        footerX: isStory ? preset.width * 0.075 : isLandscape ? preset.height * 0.09 : 35 * scaleX,
-        footerY: isStory ? preset.height - baseMargin * 1.2 : 980 * scaleY,
-      };
-    }
-    if (scene.templateId === 'news') {
-      return {
-        categoryX: baseMargin,
-        categoryY: baseMargin,
-        headlineX: baseMargin,
-        headlineY: preset.height * 0.22,
-        bodyX: baseMargin,
-        bodyY: preset.height * 0.52,
-        footerX: baseMargin,
-        footerY: preset.height - baseMargin * 2.1,
-      };
-    }
-    return {
-      dateX: isStory ? baseMargin : 35 * scaleX,
-      agendaTop: isStory ? baseMargin : 33 * scaleY,
-      contentX: isStory ? baseMargin + preset.width * 0.24 : 274 * scaleX,
-      footerX: isStory ? baseMargin : 35 * scaleX,
-      footerY: isStory ? preset.height - baseMargin * 2.1 : 980 * scaleY,
-    };
-  }, [preset.height, preset.width, scene.templateId]);
+  const baseLayout = useMemo(() => getLayout(scene.templateId, preset.width, preset.height), [preset, scene.templateId]);
 
   const readLayoutValue = (key) => scene.typoControls?.[scene.templateId]?.[key] ?? baseLayout[key];
 
@@ -278,20 +268,11 @@ const App = () => {
 
   const moveDragTarget = (event) => {
     if (!dragTarget) return;
-    const rect = event.currentTarget.getBoundingClientRect();
+    const rect = canvasRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(preset.width, ((event.clientX - rect.left) / rect.width) * preset.width));
     const y = Math.max(0, Math.min(preset.height, ((event.clientY - rect.top) / rect.height) * preset.height));
     updateScene(`typoControls.${scene.templateId}.${dragTarget.xKey}`, x);
     updateScene(`typoControls.${scene.templateId}.${dragTarget.yKey}`, y);
-  };
-
-  const requireDegular = () => {
-    const loaded = document.fonts?.check('600 32px Degular') ?? false;
-    setHasDegular(loaded);
-    if (!loaded) {
-      fontInputRef.current?.click();
-    }
-    return loaded;
   };
 
   const applyColorPreset = (presetId) => {
@@ -324,7 +305,13 @@ const App = () => {
     if (!file) {
       return;
     }
+    if (!/^image\//.test(file.type) && !/\.svg$/i.test(file.name)) {
+      setNotice('Bitte eine Bilddatei wählen.');
+      event.target.value = '';
+      return;
+    }
     const src = URL.createObjectURL(file);
+    uploadUrls.current.add(src);
     const entry = {
       id: `logo_${Date.now()}`,
       name: file.name,
@@ -351,22 +338,21 @@ const App = () => {
 
   const handleFontUpload = async (event) => {
     const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-    const src = URL.createObjectURL(file);
-    try {
-      const face = new FontFace('Degular', `url(${src})`, { style: 'normal', weight: '400 800' });
-      await face.load();
-      document.fonts.add(face);
-      setHasDegular(true);
-      setAssetVersion((value) => value + 1);
-    } catch (error) {
-      console.error(error);
-      window.alert('Degular-Datei nicht geladen.');
-      URL.revokeObjectURL(src);
-    }
     event.target.value = '';
+    if (!file) return;
+    setFontBusy(true);
+    setNotice('');
+    try {
+      const font = await importFont(file, fontWeight);
+      setFonts((current) => [...current.filter((item) => !(item.family === font.family && item.weight === font.weight)), font]);
+      setScene((current) => ({ ...current, fontFamily: font.family }));
+      setAssetVersion((value) => value + 1);
+      if (!font.saved) setNotice('Schrift geladen. Lokales Speichern ist in diesem Browser nicht verfügbar.');
+    } catch {
+      setNotice('Schriftdatei konnte nicht geladen werden. Bitte eine gültige OTF-, TTF- oder WOFF-Datei wählen.');
+    } finally {
+      setFontBusy(false);
+    }
   };
 
   const setLogoPreset = (entry) => {
@@ -422,19 +408,36 @@ const App = () => {
     }));
   };
 
-  const exportPng = () => {
-    if (!requireDegular()) {
-      return;
+  const exportPng = async () => {
+    if (exportLock.current || fontBusy) return;
+    exportLock.current = true;
+    setExporting(true);
+    setNotice('');
+    try {
+      const [image] = await Promise.all([loadImage(scene.logo.src), document.fonts.ready]);
+      await Promise.all([300, 400, 500, 600, 700, 800].map((weight) => document.fonts.load(`${weight} 32px "${scene.fontFamily}"`)));
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = preset.width;
+      exportCanvas.height = preset.height;
+      const ctx = exportCanvas.getContext('2d');
+      const warnings = renderScene({ ctx, width: preset.width, height: preset.height, scene, colors: colorScheme, getImage: () => image });
+      if (warnings.length) throw new Error(warnings[0]);
+      const blob = await new Promise((resolve, reject) => exportCanvas.toBlob((result) => result ? resolve(result) : reject(new Error('PNG konnte nicht erstellt werden.')), 'image/png'));
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `digilab-special-post-${scene.templateId}-${preset.id}-${Date.now()}.png`;
+      link.href = url;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      setNotice(`PNG erstellt: ${preset.width} × ${preset.height} Pixel.`);
+    } catch (error) {
+      setNotice(error.message || 'Export fehlgeschlagen. Bitte erneut versuchen.');
+    } finally {
+      exportLock.current = false;
+      setExporting(false);
     }
-    const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = preset.width;
-    exportCanvas.height = preset.height;
-    const ctx = exportCanvas.getContext('2d');
-    renderScene({ ctx, width: preset.width, height: preset.height, scene, colors: colorScheme, getImage });
-    const link = document.createElement('a');
-    link.download = `digilab-special-post-${scene.templateId}-${preset.id}-${Date.now()}.png`;
-    link.href = exportCanvas.toDataURL('image/png');
-    link.click();
   };
 
   useEffect(() => {
@@ -443,12 +446,11 @@ const App = () => {
       return;
     }
     const ctx = canvas.getContext('2d');
-    renderScene({ ctx, width: preset.width, height: preset.height, scene, colors: colorScheme, getImage });
+    setLayoutWarnings(renderScene({ ctx, width: preset.width, height: preset.height, scene, colors: colorScheme, getImage }));
   }, [assetVersion, colorScheme, preset.height, preset.width, scene]);
 
   return (
     <div className="app-shell">
-      <input ref={fontInputRef} type="file" accept=".otf,.ttf,.woff,.woff2,font/*" className="sr-only" onChange={handleFontUpload} />
       <aside className="sidebar">
         <div className="sidebar__header">
           <div>
@@ -459,7 +461,9 @@ const App = () => {
             className="ghost-button"
             onClick={() => {
               const freshScene = createInitialScene();
-              setScene(freshScene);
+              setScene({ ...freshScene, fontFamily: scene.fontFamily });
+              setTypoAdvanced(false);
+              setNotice('');
             }}
           >
             <RotateCcw size={16} />
@@ -483,10 +487,11 @@ const App = () => {
             <input type="range" min="0.45" max="1" step="0.01" value={previewZoom} onChange={(event) => setPreviewZoom(Number(event.target.value))} />
           </label>
           <ToggleField label="Grid einblenden" checked={scene.guides?.showGrid ?? false} onChange={(value) => updateScene('guides.showGrid', value)} />
-          <button className="accent-button" type="button" onClick={exportPng}>
+          <button className="accent-button" type="button" onClick={exportPng} disabled={fontBusy || exporting}>
             <Download size={16} />
-            PNG exportieren
+            {exporting ? 'PNG wird erstellt…' : 'PNG exportieren'}
           </button>
+          <div className="asset-note" role="status" aria-live="polite">{notice || layoutWarnings[0]}</div>
         </Section>
 
         <Section title="CI Farben" icon={Palette}>
@@ -509,8 +514,13 @@ const App = () => {
         </Section>
 
         <Section title="Schrift" icon={Type}>
-          <UploadButton label="Degular laden" accept=".otf,.ttf,.woff,.woff2,font/*" onSelect={handleFontUpload} />
-          <div className="asset-note">{hasDegular ? 'Degular geladen' : 'Degular fehlt'}</div>
+          <SelectField label="Exportschrift" value={scene.fontFamily} options={[
+            { value: 'Arial', label: 'Arial' },
+            ...[...new Set(fonts.map((font) => font.family))].map((family) => ({ value: family, label: family === 'Degular' ? 'Degular (lokal)' : 'Eigene Schrift' })),
+          ]} onChange={(value) => updateScene('fontFamily', value)} />
+          <SelectField label="Schnitt der Schriftdatei" value={fontWeight} options={[...FONT_WEIGHT_OPTIONS, { value: '300 800', label: 'Variable Schrift 300–800' }]} onChange={setFontWeight} />
+          <UploadButton label="Schriftdatei laden" accept=".otf,.ttf,.woff,.woff2,font/*" onSelect={handleFontUpload} />
+          <div className="asset-note">{fontBusy ? 'Schrift wird geladen…' : scene.fontFamily === 'Arial' ? 'Arial für Vorschau und Export. Degular kann lokal geladen werden.' : fonts.filter((font) => font.family === scene.fontFamily).map((font) => `${font.name} (${font.weight})`).join(', ')}</div>
           <ToggleField label="Typo Advanced" checked={typoAdvanced} onChange={(value) => {
             setTypoAdvanced(value);
             updateScene('typoAdvanced', value);
@@ -522,10 +532,10 @@ const App = () => {
                   <SelectField label="Headline Schriftschnitt" value={String(scene.typoControls?.cover?.headlineWeight ?? 700)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.cover.headlineWeight', Number(value))} />
                   <SelectField label="Footer Schriftschnitt" value={String(scene.typoControls?.cover?.footerWeight ?? 400)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.cover.footerWeight', Number(value))} />
                   <SliderField label="Headline X" value={scene.typoControls?.cover?.headlineX ?? baseLayout.headlineX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineX', value)} />
-                  <SliderField label="Headline Y" value={scene.typoControls?.cover?.headlineY ?? 398} min={40} max={820} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineY', value)} />
-                  <SliderField label="Headline Size" value={scene.typoControls?.cover?.headlineSize ?? 114} min={48} max={180} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineSize', value)} />
+                  <SliderField label="Headline Y" value={scene.typoControls?.cover?.headlineY ?? baseLayout.headlineY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineY', value)} />
+                  <SliderField label="Headline Size" value={scene.typoControls?.cover?.headlineSize ?? baseLayout.headlineSize} min={48} max={180} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.headlineSize', value)} />
                   <SliderField label="Footer X" value={scene.typoControls?.cover?.footerX ?? baseLayout.footerX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.footerX', value)} />
-                  <SliderField label="Footer Y" value={scene.typoControls?.cover?.footerY ?? 980} min={720} max={1040} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.footerY', value)} />
+                  <SliderField label="Footer Y" value={scene.typoControls?.cover?.footerY ?? baseLayout.footerY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.cover.footerY', value)} />
                 </div>
               )}
               {scene.templateId === 'news' && (
@@ -538,10 +548,10 @@ const App = () => {
                   <SliderField label="Kategorie Y" value={scene.typoControls?.news?.categoryY ?? baseLayout.categoryY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.categoryY', value)} />
                   <SliderField label="Headline X" value={scene.typoControls?.news?.headlineX ?? baseLayout.headlineX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.headlineX', value)} />
                   <SliderField label="Headline Y" value={scene.typoControls?.news?.headlineY ?? baseLayout.headlineY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.headlineY', value)} />
-                  <SliderField label="Headline Size" value={scene.typoControls?.news?.headlineSize ?? 99} min={42} max={150} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.headlineSize', value)} />
+                  <SliderField label="Headline Size" value={scene.typoControls?.news?.headlineSize ?? baseLayout.headlineSize} min={42} max={150} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.headlineSize', value)} />
                   <SliderField label="Text X" value={scene.typoControls?.news?.bodyX ?? baseLayout.bodyX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.bodyX', value)} />
                   <SliderField label="Text Y" value={scene.typoControls?.news?.bodyY ?? baseLayout.bodyY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.bodyY', value)} />
-                  <SliderField label="Body Size" value={scene.typoControls?.news?.bodySize ?? 50} min={18} max={72} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.bodySize', value)} />
+                  <SliderField label="Body Size" value={scene.typoControls?.news?.bodySize ?? baseLayout.bodySize} min={18} max={72} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.bodySize', value)} />
                   <SliderField label="Footer X" value={scene.typoControls?.news?.footerX ?? baseLayout.footerX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.footerX', value)} />
                   <SliderField label="Footer Y" value={scene.typoControls?.news?.footerY ?? baseLayout.footerY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.news.footerY', value)} />
                 </div>
@@ -554,8 +564,8 @@ const App = () => {
                   <SelectField label="Footer Schriftschnitt" value={String(scene.typoControls?.agenda?.footerWeight ?? 400)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('typoControls.agenda.footerWeight', Number(value))} />
                   <SliderField label="Datum X" value={scene.typoControls?.agenda?.dateX ?? baseLayout.dateX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.dateX', value)} />
                   <SliderField label="Titel X" value={scene.typoControls?.agenda?.contentX ?? baseLayout.contentX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.contentX', value)} />
-                  <SliderField label="Agenda Top" value={scene.typoControls?.agenda?.agendaTop ?? 33} min={24} max={360} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.agendaTop', value)} />
-                  <SliderField label="Title Size" value={scene.typoControls?.agenda?.titleSize ?? 60} min={24} max={100} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.titleSize', value)} />
+                  <SliderField label="Agenda Top" value={scene.typoControls?.agenda?.agendaTop ?? baseLayout.agendaTop} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.agendaTop', value)} />
+                  <SliderField label="Title Size" value={scene.typoControls?.agenda?.titleSize ?? baseLayout.titleSize} min={24} max={100} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.titleSize', value)} />
                   <SliderField label="Anmeldung X" value={scene.typoControls?.agenda?.footerX ?? baseLayout.footerX} min={0} max={preset.width} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.footerX', value)} />
                   <SliderField label="Anmeldung Y" value={scene.typoControls?.agenda?.footerY ?? baseLayout.footerY} min={0} max={preset.height} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('typoControls.agenda.footerY', value)} />
                 </div>
@@ -644,7 +654,7 @@ const App = () => {
             className="stage"
             onPointerMove={moveDragTarget}
             onPointerUp={() => setDragTarget(null)}
-            onPointerLeave={() => setDragTarget(null)}
+            onPointerCancel={() => setDragTarget(null)}
             style={{
               width: preset.width * previewScale,
               height: preset.height * previewScale,
@@ -655,6 +665,7 @@ const App = () => {
               width={preset.width}
               height={preset.height}
               className="stage__canvas"
+              aria-label="Vorschau des Instagram-Posts"
               style={{
                 width: preset.width * previewScale,
                 height: preset.height * previewScale,
